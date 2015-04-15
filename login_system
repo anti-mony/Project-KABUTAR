@@ -1,0 +1,297 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+/*structure for hash table*/
+typedef struct user
+{
+	char user_name[10];
+	char full_name[35];
+	char password[10];
+	char answer_1[15];
+	char answer_2[15];
+	struct user *next;
+}user_t;
+
+#define NUM_BUCKETS 53
+user_t *hash_tbl[NUM_BUCKETS];
+
+void hash_tbl_init(user_t *hash_tbl[NUM_BUCKETS]);
+void print_hash_tbl(user_t *hash_tbl[NUM_BUCKETS]); 
+int search_hash_tbl(user_t *hash_tbl[NUM_BUCKETS], char user_name[],char full_name[], char password[], char answer_1[], char answer_2[]);
+int insert_hash_tbl(user_t *hash_tbl[NUM_BUCKETS],char user_name[],char password[], char full_name[], char answer_1[], char answer_2[]);
+	
+/*function to create new user */
+int sign_up(char user_name[],char password[],char full_name[],char answer_1[],char answer_2[])
+{
+	FILE *fp;
+	int ret;
+			
+	fp=fopen("login.txt","a");
+	
+	if(fp == NULL)
+	{
+		printf("Error opening file! \n");
+		exit(1);
+	}
+	
+	printf("username (10 characters): \n");
+	scanf("%s",user_name);
+	
+	printf("password (10 character): \n");
+	scanf("%s",password);
+	
+	printf("full_name (35 characters): \n");
+	scanf("%s",full_name);
+	
+	printf("(Q1)Your favourite music band? \n");
+	scanf("%s",answer_1);
+	
+	printf("(Q2)Your nickname? \n");
+	scanf("%s",answer_2);
+	
+	ret = search_hash_tbl(hash_tbl, user_name, password, full_name, answer_1, answer_2);
+         if (ret == 1)
+         {
+           printf("Username alredy exists");
+           return 0;
+         }
+         if (ret == 0)
+         {
+         	fprintf(fp,"%s \t %s \t %s \t %s \t %s \t \n ",user_name,password,full_name,answer_1,answer_2);
+         	insert_hash_tbl(hash_tbl,user_name,password,full_name,answer_1,answer_2);
+		return 1;
+	 }
+		
+	fclose(fp);
+	return 0;	       
+}
+
+/*function to sign in exsisting user*/
+int log_in(char user_name[],char password[],char full_name[],char answer_1[],char answer_2[])
+{
+	int ret;
+	char choice;
+	//char username[10];
+	//char fullname[35];
+	//int passwrd[10];
+	//char answer1[15];
+	//char answer2[15];
+	
+	printf("username (10 characters): \n");
+	scanf("%s",user_name);
+	
+	printf("password (10 character): \n");
+	scanf("%s",password);
+	
+	ret = search_hash_tbl(hash_tbl, user_name,password, full_name, answer_1, answer_2);
+        if (ret == 1)
+      		return 1;
+                   
+         else
+         {
+         	printf("username or password not correct\n");
+         	printf("Forgot password? (y/n)");           
+         	scanf("%s",&choice);
+         	if (choice == 'y' || choice == 'Y')
+         	{
+         		printf("(Q1)Your favourite music band? \n");
+			scanf("%s",answer_1);
+									 
+			printf("(Q2)Your nickname? \n");
+			scanf("%s",answer_2);
+			
+			search_hash_tbl(hash_tbl, user_name, password, full_name, answer_1, answer_2);
+			
+			if(strcmp(answer_1,answer_1) == 0 && strcmp(answer_2,answer_2) == 0)
+				return 1;	
+		}
+		else
+			return 0;
+   	  } 	
+}
+
+/* Add to Hash Table Function*/
+void add_hash_tbl(user_t *hash_tbl[NUM_BUCKETS],char user_name[], char password[], char full_name[], char answer_1[], char answer_2[])
+{
+	hash_tbl_init(hash_tbl);
+
+	FILE *fp;
+	
+	fp=fopen("login.txt","r");
+	if(fp == NULL)
+	{
+		printf("Error opening file! \n");
+		exit(1);
+	}
+	
+	while (!feof(fp))
+   	{
+      		fscanf(fp,"%s \t %s \t %s \t %s \t %s \t \n ",user_name,password,full_name,answer_1,answer_2); 
+      		
+		insert_hash_tbl(hash_tbl,user_name,password,full_name,answer_1,answer_2);
+   	}
+   	fclose(fp);
+	//print_hash_tbl(hash_tbl); 
+}
+
+/* Hash funtion */
+int hash_func(char *user_name)
+{
+  int i=0,sum=0;
+  while(user_name[i] != '\0')
+  {
+  	sum = sum  + (int)user_name[i];
+  	i++;
+  }
+  return (sum/NUM_BUCKETS) ;
+}
+
+/*function to initialise hash table*/
+void hash_tbl_init(user_t *hash_tbl[NUM_BUCKETS]) 
+{
+   int i;
+   for(i=0;i<NUM_BUCKETS;i++)
+     hash_tbl[i] = NULL;
+}
+
+/*function to insert data to the hash table*/	
+int insert_hash_tbl(user_t *hash_tbl[NUM_BUCKETS],char user_name[],char password[], char full_name[], char answer_1[], char answer_2[])
+{
+   int index;
+   user_t *p_rec;
+
+   /* Generate Index */
+   index = hash_func(user_name);
+   printf("insert_hash_tbl : index = %d\n", index);
+
+   /* Add at begining of linked list : O(1) */
+   p_rec = (user_t *) malloc(sizeof(user_t));
+   
+      /* Copy Data */
+   strcpy(p_rec->user_name, user_name); 
+   strcpy(p_rec->password,password);
+   strcpy(p_rec->full_name, full_name);
+   strcpy(p_rec->answer_1, answer_1); 
+   strcpy(p_rec->answer_2, answer_2); 
+   
+
+   /* Set pointers, so as to en-chain the new node at the beginning */
+   p_rec->next = hash_tbl[index];
+   hash_tbl[index] = p_rec;
+      
+   return 1; 
+}
+
+int search_hash_tbl(user_t *hash_tbl[NUM_BUCKETS], char user_name[],char full_name[], char password[], char answer_1[], char answer_2[])
+{
+   int index;
+   user_t *p_rec;
+
+   /* Generate Index */
+   index = hash_func(user_name);
+   printf("search_hash_tbl : index = %d\n", index);
+
+   p_rec = hash_tbl[index];
+
+   while (p_rec != NULL)
+   {
+      if ((strcmp(p_rec->user_name, user_name) == 0) && strcmp(p_rec->password,password)==0)
+      {
+        /* Copy Data */
+        strcpy(user_name, p_rec->user_name); 
+        strcpy(password,p_rec->password);
+        strcpy(full_name, p_rec->full_name);
+        strcpy(answer_1, p_rec->answer_1);
+        strcpy(answer_2, p_rec->answer_2); 
+        return 1; // SUCCESS. Found it
+      }
+
+      // Move to next node
+      p_rec = p_rec->next;
+   }
+
+   return 0; // FAILURE. Did not find it
+}
+
+void print_hash_tbl(user_t *hash_tbl[NUM_BUCKETS])
+{
+   int i;
+   user_t *p_rec;
+   printf("The elements in hash table are:\n");
+   for(i=0;i<NUM_BUCKETS;i++)
+   {
+     p_rec = hash_tbl[i];
+     printf("Chain at Bucket %d:\n", i);
+     while (p_rec != NULL)
+     {
+        printf("<user_name=%s, password=%s, answer_1=%s, answer_2=%s>\n",p_rec->user_name, p_rec->password, p_rec->answer_1,  p_rec->answer_2);
+        p_rec = p_rec->next;
+     }
+   }
+}
+
+
+int main()
+{	
+       	int choice;
+       	//char chck;
+	char user_name[10];
+	char full_name[35];
+	char password[10];
+	char answer_1[15];
+	char answer_2[15];
+	int main_menu;
+	
+	add_hash_tbl(hash_tbl,user_name,password,full_name,answer_1,answer_2);
+	
+	do
+	{
+		printf("What you wanna do? \n");
+		printf("(1)Create new account \n");
+		printf("(2)Login \n");
+		printf("(0)Exit \n");
+		scanf("%d",&choice);
+	
+		switch(choice)
+		{
+			case 1:if(sign_up(user_name,password,full_name,answer_1,answer_2)==1)
+				{
+					printf("You have succesfully signed in\n");
+					main_menu = 99 ;
+				}
+				else
+				{
+					main_menu = 1;
+				}
+				break;
+		
+			case 2:if(log_in(user_name,password,full_name,answer_1,answer_2)==1)
+				{	
+					printf("Login succesful \n");
+					main_menu = 99 ;
+				}
+				else
+				{
+					main_menu = 1 ;
+				}
+				break;
+		
+			case 0: exit(0);/* Exit */
+			
+		}
+	system("clear");
+	}while(main_menu==1);
+	        
+	exit(0);
+}
+
+
+	
+	
+	
+	
+	
+	
+	
