@@ -5,9 +5,9 @@
 #include <unistd.h>
 #include <time.h>
 
-#define MAX_NUM_USERS 131
+#define MAX_NUM_USERS 31
 #define MAX_NUM_CONNECTIONS (MAX_NUM_USERS*(MAX_NUM_USERS-1))
-#define MAX_QUEUE_SIZE 100
+#define MAX_QUEUE_SIZE 50
 #define DEBUG 0
 
 typedef struct tweet
@@ -304,7 +304,7 @@ void add_hash_tbl_fulln(user_t *hash_tbl_fulln[NUM_BUCKETS],char user_name[], ch
 	fp=fopen("login.txt","r");
 	if(fp == NULL)
 	{
-		printf("Error opening file! \n");
+		perror("Error opening file! \n");
 		exit(1);
 	}
 
